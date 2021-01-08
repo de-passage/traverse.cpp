@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include "feed.hpp"
 #include "is_template_instance.hpp"
 #include "traverse.hpp"
 
