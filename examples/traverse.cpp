@@ -4,9 +4,14 @@
 
 #include "traverse.hpp"
 
+// Basic demonstration of the workings of dpsg::traverse with standard types
+
 int main() {
   constexpr auto print = [](const auto& v) {
     std::cout << "value contained: " << v << "\n";
+  };
+  constexpr auto make_const = [](auto& v) -> std::add_const_t<decltype(v)> {
+    return v;
   };
 
   std::tuple t{42, 'c', "some sentence"};
@@ -25,7 +30,7 @@ int main() {
   std::cout << "variant (string):\n";
   dpsg::traverse(v, print);
   std::cout << "optional(empty):\n";
-  dpsg::traverse(i2, print);
+  dpsg::traverse(i2, [](int&) { throw "this won't be called"; });
   std::cout << "optional (with value):\n";
   dpsg::traverse(i1, print);
   std::cout << std::endl;
@@ -40,9 +45,25 @@ int main() {
                                                 "string again"),
                  print);
   std::cout << "optional(empty):\n";
-  dpsg::traverse(std::optional<int>{}, print);
+  dpsg::traverse(std::optional<int>{},
+                 [](int&&) { throw "this won't be called"; });
   std::cout << "optional (with value):\n";
   dpsg::traverse(std::optional<char>{'k'}, print);
+  std::cout << std::endl;
+
+  std::cout << "const lvalue references\n=========\n";
+  std::cout << "tuple:\n";
+  dpsg::traverse(make_const(t), print);
+  std::cout << "pair:\n";
+  dpsg::traverse(make_const(p), print);
+  std::cout << "variant (string):\n";
+  dpsg::traverse(make_const(v), print);
+  std::cout << "optional(empty):\n";
+  dpsg::traverse(make_const(i2),
+                 [](const int&) { throw "this won't be called"; });
+  std::cout << "optional (with value):\n";
+  dpsg::traverse(make_const(i1), print);
+
   std::cout << "done" << std::endl;
 
   return 0;
