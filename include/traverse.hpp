@@ -110,17 +110,12 @@ struct is_traversable : std::false_type {};
 }  // namespace customization_points
 
 template <class T, class = void>
-struct is_traversable : std::false_type {};
+struct is_traversable : customization_points::is_traversable<T> {};
 template <class T>
 struct is_traversable<
     T,
     std::void_t<decltype(customization_points::dpsg_traverse(std::declval<T>(),
                                                              detail::ignore))>>
-    : std::true_type {};
-template <class T>
-struct is_traversable<
-    T,
-    std::enable_if_t<customization_points::is_traversable<T>::value>>
     : std::true_type {};
 
 template <class T>
