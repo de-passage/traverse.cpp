@@ -14,10 +14,13 @@ set (EXAMPLE_DIRECTORY "${CMAKE_SOURCE_DIR}/examples")
 set(INCLUDE_DIRECTORY "${CMAKE_SOURCE_DIR}/include")
 include(CPack)
 
+add_library(traversecpp INTERFACE)
+target_include_directories(traversecpp INTERFACE ${INCLUDE_DIRECTORY})
+
 function(make_example EXAMPLE_NAME)
 
 add_executable(${EXAMPLE_NAME} "${EXAMPLE_DIRECTORY}/${EXAMPLE_NAME}.cpp")
-target_include_directories(${EXAMPLE_NAME} PRIVATE ${INCLUDE_DIRECTORY})
+target_link_libraries(${EXAMPLE_NAME} PRIVATE traversecpp)
 
 if (MSVC) 
     target_compile_options(${EXAMPLE_NAME} PRIVATE \W4)
