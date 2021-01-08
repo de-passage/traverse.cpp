@@ -47,7 +47,7 @@ constexpr void dpsg_traverse(T&& tuple, F&& f, Args&&... args) noexcept(
 }
 
 #if defined(__cpp_concepts)
-template <template_instance_of<std::variant> T, class F>
+template <template_instance_of<std::variant> T, class F, class... Args>
 #else
 template <class T,
           class F,
@@ -56,8 +56,10 @@ template <class T,
               dpsg::is_template_instance_v<std::decay_t<T>, std::variant>,
               int> = 0>
 #endif
-constexpr inline void dpsg_traverse(T&& variant, F&& f) {
-  std::visit(std::forward<F>(f), std::forward<T>(variant));
+constexpr inline void dpsg_traverse(T&& variant, F&& f, Args&&... args) {
+  std::visit(std::forward<F>(f),
+             std::forward<T>(variant),
+             std::forward<Args>(args)...);
 }
 
 #if defined(__cpp_concepts)
