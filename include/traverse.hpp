@@ -97,6 +97,40 @@ struct traverse_t {
   }
 } constexpr static inline traverse;
 
+namespace detail {
+struct {
+  template <class T>
+  constexpr void operator()([[maybe_unused]] T&&) const {}
+} constexpr static inline ignore;
+}  // namespace detail
+
+namespace customization_points {
+template <class T>
+struct is_traversable : std::false_type {};
+}  // namespace customization_points
+
+template <class T, class = void>
+struct is_traversable : std::false_type {};
+template <class T>
+struct is_traversable<
+    T,
+    std::void_t<decltype(customization_points::dpsg_traverse(std::declval<T>(),
+                                                             detail::ignore))>>
+    : std::true_type {};
+template <class T>
+struct is_traversable<
+    T,
+    std::enable_if_t<customization_points::is_traversable<T>::value>>
+    : std::true_type {};
+
+template <class T>
+constexpr static inline bool is_traversable_v = is_traversable<T>::value;
+
+#if defined(__cpp_concepts)
+template <class T>
+concept traversable = is_traversable_v<T>;
+#endif
+
 }  // namespace dpsg
 
 #endif  // GUARD_DPSG_TRAVERSE_HPP

@@ -34,3 +34,4 @@ endfunction()
 
 make_example(traverse)
 make_example(customization_points)
+make_example(is_traversable)
