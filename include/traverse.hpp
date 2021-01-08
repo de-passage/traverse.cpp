@@ -4,6 +4,7 @@
 #include <optional>
 #include <tuple>
 #include <type_traits>
+#include <utility>
 #include <variant>
 
 #include "feed.hpp"
@@ -21,13 +22,57 @@ struct traverse_t {
                 dpsg::is_template_instance_v<std::decay_t<T>, std::tuple>,
                 int> = 0>
 #endif
-  constexpr void operator()(T&& tuple, F f) const
+  constexpr void operator()(T&& tuple, F&& f) const
       noexcept(noexcept(apply_to_each(std::forward<T>(tuple),
-                                      std::move(f),
+                                      std::forward<F>(f),
                                       feed_t<T, std::index_sequence_for>{}))) {
     apply_to_each(std::forward<T>(tuple),
-                  std::move(f),
+                  std::forward<F>(f),
                   feed_t<T, std::index_sequence_for>{});
+  }
+
+#if defined(__cpp_concepts)
+  template <template_instance_of<std::variant> T, class F>
+#else
+  template <class T,
+            class F,
+            std::enable_if_t<
+                dpsg::is_template_instance_v<std::decay_t<T>, std::variant>,
+                int> = 0>
+#endif
+  constexpr void operator()(T&& variant, F&& f) const {
+    std::visit(std::forward<F>(f), std::forward<T>(variant));
+  }
+
+#if defined(__cpp_concepts)
+  template <template_instance_of<std::pair> T, class F>
+#else
+  template <
+      class T,
+      class F,
+      std::enable_if_t<dpsg::is_template_instance_v<std::decay_t<T>, std::pair>,
+                       int> = 0>
+#endif
+  constexpr void operator()(T&& pair, F&& f) const
+      noexcept(noexcept(f(std::forward<T>(pair).first)) && noexcept(
+          f(std::forward<T>(pair).second))) {
+    f(std::forward<T>(pair).first);
+    f(std::forward<T>(pair).second);
+  }
+
+#if defined(__cpp_concepts)
+  template <template_instance_of<std::optional> T, class F>
+#else
+  template <class T,
+            class F,
+            std::enable_if_t<
+                dpsg::is_template_instance_v<std::decay_t<T>, std::optional>,
+                int> = 0>
+#endif
+  constexpr void operator()(T&& pair, F&& f) const {
+    if (pair) {
+      std::forward<F>(f)(*std::forward<T>(pair));
+    }
   }
 
  private:
@@ -40,7 +85,6 @@ struct traverse_t {
                                      ...))) {
     (f(std::get<Is>(std::forward<T>(tuple))), ...);
   }
-
 } constexpr static inline traverse;
 
 }  // namespace dpsg
