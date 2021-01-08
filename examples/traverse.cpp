@@ -2,18 +2,7 @@
 #include <iostream>
 #include <string>
 
-#include "feed.hpp"
-#include "is_template_instance.hpp"
 #include "traverse.hpp"
-
-template <class... Args>
-struct tpl : std::tuple<Args...> {
-  template <class... Args2>
-  constexpr tpl(Args2&&... args)
-      : std::tuple<Args...>(std::forward<Args2>(args)...) {}
-};
-template <class... Args>
-tpl(Args&&...) -> tpl<Args...>;
 
 int main() {
   constexpr auto print = [](const auto& v) {
@@ -54,10 +43,6 @@ int main() {
   dpsg::traverse(std::optional<int>{}, print);
   std::cout << "optional (with value):\n";
   dpsg::traverse(std::optional<char>{'k'}, print);
-  //   tpl t1{43, 'd', "something else"};
-
-  //   dpsg::traverse(t1, print);
-
   std::cout << "done" << std::endl;
 
   return 0;

@@ -29,4 +29,5 @@ add_test(${EXAMPLE_NAME} ${EXAMPLE_NAME})
 
 endfunction()
 
-make_example(basic)
+make_example(traverse)
+make_example(customization_points)
