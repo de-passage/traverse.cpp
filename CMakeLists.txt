@@ -23,7 +23,7 @@ add_executable(${EXAMPLE_NAME} "${EXAMPLE_DIRECTORY}/${EXAMPLE_NAME}.cpp")
 target_link_libraries(${EXAMPLE_NAME} PRIVATE traversecpp)
 
 if (MSVC) 
-    target_compile_options(${EXAMPLE_NAME} PRIVATE \W4)
+    target_compile_options(${EXAMPLE_NAME} PRIVATE "/W4" "/permissive-")
 else()
     target_compile_options(${EXAMPLE_NAME} PRIVATE -Werror -Wall -Wextra -pedantic)
 endif()

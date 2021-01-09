@@ -19,8 +19,15 @@ constexpr static void apply_to_each(
     T&& tuple,
     F f,
     [[maybe_unused]] std::index_sequence<Is...> marker,
-    Args&&... args) noexcept(noexcept((f(std::get<Is>(std::forward<T>(tuple))),
-                                       ...))) {
+    Args&&... args)
+#if !defined(_MSC_VER)
+    // MSVC chokes on this for some reason. It seems to fail to recognize that
+    // Is is properly expanded. Obviously the error message has nothing to do
+    // with the problem, as per usual with this POS, making me regret to even
+    // having tried to support it.
+    noexcept(noexcept((f(std::get<Is>(std::forward<T>(tuple)), args...), ...)))
+#endif
+{
   (f(std::get<Is>(std::forward<T>(tuple)), args...), ...);
 }
 }  // namespace detail

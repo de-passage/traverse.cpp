@@ -58,7 +58,7 @@ template <class T, class U>
 
 constexpr auto html = [](auto&& write) {
   return [write = std::forward<decltype(write)>(write)](
-             const auto& el, [[maybe_unused]] auto&& next, int indent = 0) {
+             const auto& el, auto&& next, int indent = 0) {
     using value_type = decltype(el);
 
     if constexpr (is<value_type, doc::div>) {
@@ -87,6 +87,12 @@ constexpr auto html = [](auto&& write) {
       next(indent + 1);
       write(indent, "</body>\n");
     }
+
+// In leaves, next is unused. Clang doesn't care but MSVC complains. In classic
+// Microsoft style, using [[maybe_unused]] doesn't satisfy the sucker
+#if defined(_MSC_VER)
+    (void)(next);
+#endif
   };
 };
 
@@ -114,6 +120,9 @@ constexpr auto markdown = [](auto&& write) {
       write("# ", el.title, "\n\n");
       next();
     }
+#if defined(_MSC_VER)  // see above
+    (void)(next);
+#endif
   };
 };
 
