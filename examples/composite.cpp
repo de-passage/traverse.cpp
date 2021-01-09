@@ -1,3 +1,4 @@
+#include <composite.hpp>
 #include <traverse.hpp>
 
 #include <iostream>
@@ -5,48 +6,8 @@
 #include <type_traits>
 
 namespace doc {
-
-template <class... Args>
-struct composite {
-  template <
-      class... Args2,
-      std::enable_if_t<
-          std::conjunction_v<std::is_convertible<std::decay_t<Args2>, Args>...>,
-          int> = 0>
-
-  constexpr explicit composite(Args2&&... args) noexcept
-      : components{std::forward<Args2>(args)...} {}
-
-  std::tuple<Args...> components;
-
-  template <class C,
-            class F,
-            class... Args2,
-            std::enable_if_t<std::is_base_of_v<composite, C>, int> = 0>
-  constexpr friend void dpsg_traverse(const C& c,
-                                      const F& f,
-                                      Args2&&... args) noexcept {
-    f(c,
-      next(c, f, dpsg::feed_t<composite, std::index_sequence_for>{}),
-      std::forward<Args2>(args)...);
-  }
-
- private:
-  template <class C,
-            class F,
-            std::size_t... Is,
-            std::enable_if_t<std::is_base_of_v<composite, C>, int> = 0>
-  static auto next(const C& c1,
-                   const F& f,
-                   [[maybe_unused]] std::index_sequence<Is...> seq) {
-    return [&c1, &f](auto&&... user_input) {
-      (dpsg::traverse(std::get<Is>(c1.components),
-                      f,
-                      std::forward<decltype(user_input)>(user_input)...),
-       ...);
-    };
-  }
-};
+using dpsg::composite;
+using leaf = composite<>;
 
 template <class... Args>
 struct div : composite<Args...> {
@@ -68,31 +29,23 @@ struct document : composite<Args...> {
 template <class... Args>
 document(const char*, Args&&...) -> document<Args...>;
 
-struct title {
+struct title : leaf {
+  constexpr title(int lvl, const char* title) noexcept
+      : level{lvl}, text{title} {}
   int level;
-  const char* title;
-};
-
-struct p {
   const char* text;
 };
 
-struct br {
-} constexpr static inline br_;
+struct p : leaf {
+  constexpr p(const char* text) noexcept : text{text} {}
+  const char* text;
+};
 
-template <class T, class... Args>
-constexpr static inline bool one_of =
-    std::disjunction_v<std::is_same<std::decay_t<T>, Args>...>;
+struct br : leaf {
+  constexpr br() noexcept {}
+};
 
-// catch-all for terminal cases
-template <class T,
-          class F,
-          class... Args,
-          std::enable_if_t<one_of<T, title, p, br>, int> = 0>
-constexpr void dpsg_traverse(T&& t, F&& f, Args&&... args) {
-  std::forward<F>(f)(
-      std::forward<T>(t), [](auto&&...) {}, std::forward<Args>(args)...);
-}
+constexpr static inline br br_{};
 
 }  // namespace doc
 
@@ -105,7 +58,7 @@ template <class T, class U>
 
 constexpr auto html = [](auto&& write) {
   return [write = std::forward<decltype(write)>(write)](
-             const auto& el, auto&& next, int indent = 0) {
+             const auto& el, [[maybe_unused]] auto&& next, int indent = 0) {
     using value_type = decltype(el);
 
     if constexpr (is<value_type, doc::div>) {
@@ -114,7 +67,7 @@ constexpr auto html = [](auto&& write) {
       write(indent, "</div>\n");
     }
     else if constexpr (is_<value_type, doc::title>) {
-      write(indent, "<h", el.level, ">", el.title, "</h", el.level, ">\n");
+      write(indent, "<h", el.level, ">", el.text, "</h", el.level, ">\n");
     }
     else if constexpr (is_<value_type, doc::p>) {
       write(indent, "<p>\n");
@@ -149,7 +102,7 @@ constexpr auto markdown = [](auto&& write) {
       for (int i = 0; i <= el.level; ++i) {
         write('#');
       }
-      write(' ', el.title, "\n");
+      write(' ', el.text, "\n");
     }
     else if constexpr (is_<value_type, doc::p>) {
       write(el.text, "\n\n");
