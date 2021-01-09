@@ -7,8 +7,8 @@
 #include <utility>
 #include <variant>
 
-#include "feed.hpp"
-#include "is_template_instance.hpp"
+#include "./feed.hpp"
+#include "./is_template_instance.hpp"
 
 namespace dpsg {
 
