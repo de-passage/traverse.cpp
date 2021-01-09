@@ -98,19 +98,6 @@ constexpr void dpsg_traverse(T&& pair, F&& f, Args&&... args) {
 
 namespace detail {
 using ::dpsg::customization_points::dpsg_traverse;
-
-struct traverse_t {
-  template <class T, class F, class... Args>
-  constexpr void operator()(T&& t, F&& f, Args&&... args) const {
-    dpsg_traverse(
-        std::forward<T>(t), std::forward<F>(f), std::forward<Args>(args)...);
-  }
-};
-}  // namespace detail
-constexpr static inline detail::traverse_t traverse;
-
-namespace detail {
-using ::dpsg::customization_points::dpsg_traverse;
 struct {
   template <class T>
   constexpr void operator()([[maybe_unused]] T&&) const {}
@@ -126,6 +113,7 @@ struct is_traversable<
     : std::true_type {};
 
 }  // namespace detail
+
 template <class T>
 using is_traversable = detail::is_traversable<T>;
 
@@ -136,6 +124,24 @@ constexpr static inline bool is_traversable_v = is_traversable<T>::value;
 template <class T>
 concept traversable = is_traversable_v<T>;
 #endif
+namespace detail {
+
+struct traverse_t {
+#if defined(__cpp_concepts)
+  template <traversable T, class F, class... Args>
+#else
+  template <class T,
+            class F,
+            class... Args,
+            std::enable_if_t<is_traversable_v<T>, int> = 0>
+#endif
+  constexpr void operator()(T&& t, F&& f, Args&&... args) const {
+    dpsg_traverse(
+        std::forward<T>(t), std::forward<F>(f), std::forward<Args>(args)...);
+  }
+};
+}  // namespace detail
+constexpr static inline detail::traverse_t traverse;
 
 }  // namespace dpsg
 
