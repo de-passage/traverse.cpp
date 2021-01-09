@@ -94,38 +94,40 @@ constexpr void dpsg_traverse(T&& pair, F&& f, Args&&... args) {
     std::forward<F>(f)(*std::forward<T>(pair), std::forward<Args>(args)...);
   }
 }
-
 }  // namespace customization_points
+
+namespace detail {
+using ::dpsg::customization_points::dpsg_traverse;
 
 struct traverse_t {
   template <class T, class F, class... Args>
   constexpr void operator()(T&& t, F&& f, Args&&... args) const {
-    using ::dpsg::customization_points::dpsg_traverse;
     dpsg_traverse(
         std::forward<T>(t), std::forward<F>(f), std::forward<Args>(args)...);
   }
-} constexpr static inline traverse;
+};
+}  // namespace detail
+constexpr static inline detail::traverse_t traverse;
 
 namespace detail {
+using ::dpsg::customization_points::dpsg_traverse;
 struct {
   template <class T>
   constexpr void operator()([[maybe_unused]] T&&) const {}
 } constexpr static inline ignore;
-}  // namespace detail
-
-namespace customization_points {
-template <class T>
-struct is_traversable : std::false_type {};
-}  // namespace customization_points
 
 template <class T, class = void>
-struct is_traversable : customization_points::is_traversable<T> {};
+struct is_traversable : std::false_type {};
+
 template <class T>
 struct is_traversable<
     T,
-    std::void_t<decltype(customization_points::dpsg_traverse(std::declval<T>(),
-                                                             detail::ignore))>>
+    std::void_t<decltype(dpsg_traverse(std::declval<T>(), ignore))>>
     : std::true_type {};
+
+}  // namespace detail
+template <class T>
+using is_traversable = detail::is_traversable<T>;
 
 template <class T>
 constexpr static inline bool is_traversable_v = is_traversable<T>::value;
