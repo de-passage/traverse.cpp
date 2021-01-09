@@ -24,7 +24,7 @@ struct composite {
             class... Args2,
             std::enable_if_t<std::is_base_of_v<composite, C>, int> = 0>
   constexpr friend void dpsg_traverse(const C& c,
-                                      const F& f,
+                                      F&& f,
                                       Args2&&... args) noexcept {
     f(c,
       next(c, f, dpsg::feed_t<composite, std::index_sequence_for>{}),
@@ -36,9 +36,9 @@ struct composite {
             class F,
             std::size_t... Is,
             std::enable_if_t<std::is_base_of_v<composite, C>, int> = 0>
-  static auto next([[maybe_unused]] const C& c1,
-                   [[maybe_unused]] const F& f,
-                   [[maybe_unused]] std::index_sequence<Is...> seq) {
+  constexpr static auto next([[maybe_unused]] const C& c1,
+                             [[maybe_unused]] F&& f,
+                             [[maybe_unused]] std::index_sequence<Is...> seq) {
     return [&c1, &f](auto&&... user_input) {
       if constexpr (sizeof...(Is) == 0) {
         // suppresses warnings in the case of a composite with no elements
