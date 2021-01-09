@@ -4,6 +4,7 @@
 #include <optional>
 #include <tuple>
 #include <type_traits>
+#include <utility>
 #include <variant>
 
 #include "./feed.hpp"
@@ -17,10 +18,13 @@ struct parameter_count : std::integral_constant<std::size_t, sizeof...(Args)> {
 };
 
 template <std::size_t S, class Count, class T, class A, class F, class... Args>
-constexpr auto fold_over([[maybe_unused]] T&& tuple,
-                         [[maybe_unused]] A&& acc,
-                         [[maybe_unused]] F&& fun,
-                         [[maybe_unused]] Args&&... args) {
+constexpr auto fold_over(
+    [[maybe_unused]] T&& tuple,
+    [[maybe_unused]] A&& acc,
+    [[maybe_unused]] F&& fun,
+    [[maybe_unused]] Args&&... args) /*it's actually really hard to write the
+                                        correct noexcept spec here*/
+{
   if constexpr (S < Count::value) {
     return fold_over<S + 1, Count>(std::forward<T>(tuple),
                                    fun(std::forward<A>(acc),
@@ -43,15 +47,89 @@ template <class T,
           class... Args,
           std::enable_if_t<is_template_instance_v<T, std::tuple>, int> = 0>
 #endif
-constexpr decltype(auto) dpsg_fold(T&& tuple,
-                                   A&& acc,
-                                   F&& fun,
-                                   Args&&... extra) {
+constexpr decltype(auto)
+dpsg_fold(T&& tuple, A&& acc, F&& fun, Args&&... extra) noexcept(
+    noexcept(detail::fold_over<0, feed_t<T, detail::parameter_count>>(
+        std::forward<T>(tuple),
+        std::forward<A>(acc),
+        std::forward<F>(fun),
+        std::forward<Args>(extra)...))) {
   return detail::fold_over<0, feed_t<T, detail::parameter_count>>(
       std::forward<T>(tuple),
       std::forward<A>(acc),
       std::forward<F>(fun),
       std::forward<Args>(extra)...);
+}
+
+#if defined(_cpp_concepts)
+template <template_instance_of<std::variant> T, class A, class F, class... Args>
+#else
+template <class T,
+          class A,
+          class F,
+          class... Args,
+          std::enable_if_t<is_template_instance_v<T, std::variant>, int> = 0>
+#endif
+constexpr decltype(auto) dpsg_fold(
+    T&& variant,
+    A&& acc,
+    F&& fun,
+    Args&&... extra) /*also really hard to noexcept correctly*/ {
+  return std::visit(
+      [&acc, &fun, &extra...](auto&& v) {
+        return std::forward<F>(fun)(std::forward<A>(acc),
+                                    std::forward<decltype(v)>(v),
+                                    std::forward<Args>(extra)...);
+      },
+      variant);
+}
+
+#if defined(_cpp_concepts)
+template <template_instance_of<std::pair> T, class A, class F, class... Args>
+#else
+template <class T,
+          class A,
+          class F,
+          class... Args,
+          std::enable_if_t<is_template_instance_v<T, std::pair>, int> = 0>
+#endif
+constexpr decltype(auto)
+dpsg_fold(T&& pair, A&& acc, F&& fun, Args&&... extra) noexcept(noexcept(
+    fun(fun(std::forward<A>(acc), std::forward<T>(pair).first, extra...),
+        std::forward<T>(pair).second,
+        extra...))) {
+  return fun(fun(std::forward<A>(acc), std::forward<T>(pair).first, extra...),
+             std::forward<T>(pair).second,
+             extra...);
+}
+
+#if defined(_cpp_concepts)
+template <template_instance_of<std::optional> T,
+          class A,
+          class F,
+          class... Args>
+#else
+template <class T,
+          class A,
+          class F,
+          class... Args,
+          std::enable_if_t<is_template_instance_v<T, std::optional>, int> = 0>
+#endif
+constexpr auto
+dpsg_fold(T&& option, A&& acc, F&& fun, Args&&... extra) noexcept(
+    noexcept(std::forward<F>(fun)(std::forward<A>(acc),
+                                  *std::forward<T>(option),
+                                  extra...)))
+    -> decltype(std::forward<F>(fun)(std::forward<A>(acc),
+                                     *std::forward<T>(option),
+                                     extra...)) {
+  if (option) {
+    return std::forward<F>(fun)(
+        std::forward<A>(acc), *std::forward<T>(option), extra...);
+  }
+  else {
+    return acc;
+  }
 }
 
 }  // namespace customization_points

@@ -1,6 +1,8 @@
 #include <composite.hpp>
 #include <traverse.hpp>
 
+#include "./overload_set.hpp"
+
 #include <iostream>
 #include <tuple>
 #include <type_traits>
@@ -183,13 +185,6 @@ constexpr doc::document document{"I'm too lazy to make more classes",
 /////////////////////////////////
 // Utility to write on streams //
 /////////////////////////////////
-template <class... Args>
-struct overload_set : Args... {
-  using Args::operator()...;
-};
-template <class... Args>
-overload_set(Args&&... args) -> overload_set<Args...>;
-
 constexpr auto write_to = [](auto& out) {
   return overload_set{[&out](int indentation, auto&&... str) {
                         while (indentation-- > 0) {
