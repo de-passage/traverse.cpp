@@ -1,4 +1,6 @@
-// #include "traverse.hpp" // See below
+#if defined(_MSC_VER)
+#include "traverse.hpp"  // See below
+#endif
 
 #include <iostream>
 #include <string>
@@ -85,8 +87,11 @@ int main() {
                                       "it's a string"};
   dpsg::traverse(e, print);
 
+#if !defined(_MSC_VER)
+  // For other reasons, this won't compile in MSVC unless in C++20 mode
   dpsg::traverse("don't do that, it's a bad example",
                  print);  // implicit conversion to std::string
+#endif
 
   return 0;
 }
